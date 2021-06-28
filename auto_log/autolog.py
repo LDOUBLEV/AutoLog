@@ -23,7 +23,7 @@ from pathlib import Path
 import logging
 from .env import get_env_info
 from .utils import Times
-from .device import MemInfo
+from .device import MemInfo, SubprocessGetMem
 
 
 class RunConfig:
@@ -73,7 +73,25 @@ class AutoLogger(RunConfig):
 
         self.get_paddle_info()
         self.init_logger()
-        self.mem_info = MemInfo(pids=pids, gpu_id=gpu_ids)
+
+        self.get_mem = SubprocessGetMem(pid=pids, gpu_id=gpu_ids)
+        self.start_subprocess_get_mem()
+        self.pids = pids
+        self.gpu_ids = gpu_ids
+    
+    def start_subprocess_get_mem(self):
+        self.get_mem.get_mem_subprocess_run(0.2)
+
+    def end_subprocess_get_mem(self):
+        self.get_mem.get_mem_subprocess_end()
+        cpu_infos = self.get_mem.cpu_infos
+        gpu_infos = self.get_mem.gpu_infos
+        self.cpu_infos = cpu_infos[str(self.pids)]
+        if self.gpu_ids is None:
+            self.gpu_infos = {}
+        else:
+            self.gpu_infos = gpu_infos[str(self.gpu_ids)]
+        return self.cpu_infos, self.gpu_infos
 
     def init_logger(self):
         """
@@ -94,22 +112,7 @@ class AutoLogger(RunConfig):
         self.logger = logging.getLogger(__name__)
         self.logger.info(
             f"Paddle Inference benchmark log will be saved to {log_output}")
-    
-    def get_avg_mem_mb(self):
-        self.cpu_infos, self.gpu_infos = self.mem_info.get_avg_mem_mb()
 
-    def reset(self):
-        pass
-
-    def get_mem(self, pid, gpu_id, q, interval=1.0):
-        mem_info = MemInfo([pid], [gpu_id])
-        while True:
-            cpu_infos, gpu_infos = mem_info.summary_mem()
-            q.put()
-            time.sleep(interval)
-        return 
-
-    
     def parse_config(self, config) -> dict:
         """
         parse paddle predictor config
@@ -145,15 +148,22 @@ class AutoLogger(RunConfig):
         else:
             identifier = ""
 
-        # cpu_rss_mb, gpu_rss_mb, gpu_util = self.GetMem.report()
-
+        # report time
         _times_value = self.times.value(key=self.time_keys, mode='mean')
-        preprocess_time_ms = _times_value['preprocess_time'] * 1000
-        inference_time_ms = _times_value['inference_time'] * 1000
-        postprocess_time_ms = _times_value['postprocess_time'] * 1000
+        preprocess_time_ms = round(_times_value['preprocess_time'] * 1000, 4)
+        inference_time_ms = round(_times_value['inference_time'] * 1000, 4)
+        postprocess_time_ms = round(_times_value['postprocess_time'] * 1000, 4)
         data_num = self.times._num_counts()
-        total_time_s = self.times._report_total_time(mode='sum')
+        total_time_s = round(self.times._report_total_time(mode='sum'), 4)
 
+        # report memory
+        cpu_infos, gpu_infos = self.end_subprocess_get_mem()
+        
+        cpu_rss_mb = self.cpu_infos['cpu_rss']
+        gpu_rss_mb = self.gpu_infos['used'] if self.gpu_ids is not None else None      
+        gpu_util = self.gpu_infos['util'] if self.gpu_ids is not None else None 
+
+        # report env
         envs = get_env_info()
 
         self.logger.info("\n")
@@ -196,9 +206,9 @@ class AutoLogger(RunConfig):
         self.logger.info(f"{identifier} data_num: {data_num}")
         self.logger.info(
             "----------------------- Perf info -----------------------")
-        # self.logger.info(
-        #     f"{identifier} cpu_rss(MB): {cpu_rss_mb}, gpu_rss(MB): {gpu_rss_mb}, gpu_util: {gpu_util}%"
-        # )
+        self.logger.info(
+            f"{identifier} cpu_rss(MB): {cpu_rss_mb}, gpu_rss(MB): {gpu_rss_mb}, gpu_util: {gpu_util}%"
+        )
         self.logger.info(
             f"{identifier} total time spent(s): {total_time_s}")
         self.logger.info(

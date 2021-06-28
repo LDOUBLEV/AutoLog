@@ -57,15 +57,12 @@ class Times(object):
         
         self.stamp_count += 1
 
-        if self.stamp_count <= self.warmup:
-            continue
-        
         self.time_stamps.append(time.time())
 
         if self.stamp_count > len(self.keys):
             self.keys.append(f"stamps_{self.stamp_count}")
 
-        idx = (self.stamp_count - self.warmup - 1) % len(self.keys)
+        idx = (self.stamp_count - 1) % len(self.keys)
         _k = self.keys[idx] 
         if _k in self.times.keys():
             self.times[_k].append(self.time_stamps[-1] - self.time_stamps[-2])
@@ -108,16 +105,20 @@ class Times(object):
         return res
 
     def mean(self, lists):
+        if len(lists) <= self.warmup:
+            raise ValueError(f"The number {len(lists)} of time stamps must be larger than warmup: {self.warmup}")
         if len(lists) < 1:
             return 0.
         else:
-            return np.mean(lists)
+            return np.mean(lists[self.warmup:])
     
     def sum(self, lists):
+        if len(lists) <= self.warmup:
+            raise ValueError(f"The number {len(lists)} of time stamps must be larger than warmup: {self.warmup}")
         if len(lists) < 1:
             return 0.
         else:
-            return np.sum(lists)
+            return np.sum(lists[self.warmup:])
 
 
 # if __name__ == "__main__":

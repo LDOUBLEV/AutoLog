@@ -1,4 +1,3 @@
-# reference https://blog.csdn.net/m0_37542524/article/details/102887996
 import pynvml  
 import psutil  
 import os 
@@ -6,6 +5,8 @@ import json
 import time
 import multiprocessing
 import numpy as np
+import GPUtil
+
 
 class CpuInfo(object):
     @staticmethod
@@ -46,6 +47,7 @@ class GpuInfo(object):
     def init(self):
         # init
         pynvml.nvmlInit()
+        self.GPUs = GPUtil.getGPUs()
     
     def get_gpu_name(self):
         name = pynvml.nvmlDeviceGetName(handle)
@@ -70,6 +72,10 @@ class GpuInfo(object):
         info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         used_rate = int((info.used / info.total) * 100)
         return used_rate
+    
+    def get_gpu_util(self, gpu_id):
+        gpu_util = self.GPUs[gpu_id].load
+        return gpu_util
 
     def get_gpu_info(self, gpu_id):
         self.init()
@@ -80,6 +86,7 @@ class GpuInfo(object):
         gpu_info['total'] = info.total/M
         gpu_info['free'] = info.free/M
         gpu_info['used'] = info.used/M
+        gpu_info['util'] = self.get_gpu_util(gpu_id)
         return gpu_info
 
     def release(self):
@@ -172,30 +179,38 @@ class MemInfo(CpuInfo):
 
         return self.cpu_infos, self.gpu_infos
 
-    def get_avg_mem_subprocess(self, q, interval=1.0):
+
+class SubprocessGetMem(object):
+    def __init__(self, pid, gpu_id):
+        self.mem_info = MemInfo(pid, gpu_id)
+
+    def get_mem_subprocess_start(self, q, interval=1.0):
         while True:
-            res = self.get_avg_mem_mb()
-            q.put(res)
+            cpu_infos, gpu_infos = self.mem_info.get_avg_mem_mb()
+            q.put([cpu_infos, gpu_infos])
             time.sleep(interval)
-        return 
-
-    def _start_subprocess(self):
-        multiprocessing.set_start_method('spawn')
-        self._quene = multiprocessing.Queue()
-        self.p = multiprocessing.Process(target=self.get_avg_mem_subprocess, args=(self._quene, 1.0))
-        self.p.start()
+        return
     
-    def _join_subprocess(self):
-        self.p.join()
+    def get_mem_subprocess_init(self, interval=1.0):
+        multiprocessing.set_start_method('fork')
+        self.mem_q = multiprocessing.Queue()
+
+        results = []
+        self.mem_p = multiprocessing.Process(target=self.get_mem_subprocess_start, args=(self.mem_q, interval))
+        self.mem_p.start()
     
-    def _terminate_subprocess(self):
-        # res = self._quene.get()
-        self.p.terminate()
-        return res
+    def get_mem_subprocess_run(self, interval=1.0):
+        self.get_mem_subprocess_init(interval=interval)
+    
+    def get_mem_subprocess_end(self):
+        self.cpu_infos, self.gpu_infos = self.mem_q.get()
+        # self.mem_p.terminate()
+        self.mem_p.kill()
 
 
-if __name__ == "__main__":
-    # print("----------------------------")
-    mem_info = MemInfo(11227, [0])
-    res = mem_info.summary_mem()
-    print(res)
+
+# if __name__ == "__main__":
+#     # print("----------------------------")
+#     mem_info = MemInfo(11227, [0])
+#     res = mem_info.summary_mem()
+#     print(res)
