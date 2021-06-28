@@ -1,0 +1,201 @@
+# reference https://blog.csdn.net/m0_37542524/article/details/102887996
+import pynvml  
+import psutil  
+import os 
+import json
+import time
+import multiprocessing
+import numpy as np
+
+class CpuInfo(object):
+    @staticmethod
+    def get_disk_info(path):
+        G = 1024*1024
+        diskinfo = psutil.disk_usage(path)
+        info = "path:%s  total:%dG,  used:%dG,  free:%dG,  used_percent:%d%%"%(path,
+                                    diskinfo.total/G, diskinfo.used/G, diskinfo.free/G, diskinfo.percent)
+        return info
+
+    @staticmethod
+    def get_disk_partitions():
+        return psutil.disk_partitions()
+
+    @staticmethod
+    def get_current_process_pid():
+        pids = psutil.pids()
+        return pids
+
+    @staticmethod
+    def get_process_info(pid):
+        p = psutil.Process(pid) 
+        info = "name:{}  pid:{}  \nstatus:{}  \ncreate_time:{}  \ncpu_times:{}  \nmemory_percent:{}  \nmemory_info:{}  \nio_counters：{}  \nnum_threads：{}".format(p.name(), 
+                        pid, p.status(), p.create_time(), p.cpu_times(), p.memory_percent(), p.memory_info(), p.io_counters(), p.num_threads())
+        return info
+    
+    @staticmethod
+    def get_cpu_current_memory_mb(pid):
+        info = {}
+        p = psutil.Process(pid) 
+        mem_info = p.memory_info()
+        info['cpu_rss'] = round(mem_info.rss/1024/1024, 4)
+        info['memory_percent'] = round(p.memory_percent(), 4)
+        return info
+
+
+class GpuInfo(object):
+    def init(self):
+        # init
+        pynvml.nvmlInit()
+    
+    def get_gpu_name(self):
+        name = pynvml.nvmlDeviceGetName(handle)
+        return name.decode('utf-8')
+
+    def get_gpu_device(self):
+        deviceCount = pynvml.nvmlDeviceGetCount()
+        gpu_list = []
+        for i in range(deviceCount):
+            handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+            gpu_list.append(i)
+        return gpu_list
+
+    def get_free_rate(self, gpu_id):
+        handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_id)
+        info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        free_rate = int((info.free / info.total) * 100)
+        return free_rate
+
+    def get_used_rate(self, gpu_id):
+        handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_id)
+        info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        used_rate = int((info.used / info.total) * 100)
+        return used_rate
+
+    def get_gpu_info(self, gpu_id):
+        self.init()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_id)
+        info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        M = 1024*1024
+        gpu_info = {}
+        gpu_info['total'] = info.total/M
+        gpu_info['free'] = info.free/M
+        gpu_info['used'] = info.used/M
+        return gpu_info
+
+    def release(self):
+        pynvml.nvmlShutdown()
+
+
+class MemInfo(CpuInfo):
+    def __init__(self, pids=None, gpu_id=None):
+
+        pynvml.nvmlInit()
+
+        self.pids = self.check_pid(pids)
+        if gpu_id is not None:
+            self.gpuinfo = GpuInfo()
+            self.gpu_id = self.check_gpu_id(gpu_id)
+        else:
+            self.gpuinfo = None
+            self.gpu_id = self.check_gpu_id(gpu_id)
+        
+        self.gpuinfo.init()
+        self.cpu_infos = {}
+        self.gpu_infos = {}
+    
+    def get_cpu_mem(self):
+        cpu_mem = {}
+        for pid in self.pids:
+            cpu_mem[pid] = self.get_cpu_current_memory_mb(pid)
+        return cpu_mem
+
+    def get_gpu_mem(self):
+        if gpuinfo is None:
+            return None
+        else:
+            gpu_info = {}
+            for id in self.gpu_id:
+                gpu_info[id] = self.gpuinfo.get_gpu_info(id)
+            return gpu_info
+
+    def check_pid(self, pids):
+        if type(pids)==int:
+            return [pids]
+        elif type(pids)==tuple:
+            return [p for p in pids]
+        elif type(pids)==list:
+            return pids
+        else:
+            raise ValueError("Expect list of int input about pids, but get {} with type {}".format(pids, type(pids)))
+    
+    def check_gpu_id(self, gpu_id):
+        if gpu_id is None:
+            return []
+        elif type(gpu_id)==int:
+            return [gpu_id]
+        elif type(gpu_id)==tuple:
+            return [p for p in gpu_id]
+        elif type(gpu_id)==list:
+            return gpu_id
+        else:
+            raise ValueError("Expect list of int input about gpu_id, but get {} with type {}".format(gpu_id, type(gpu_id)))
+
+    def summary_mem(self, return_str=True):
+        cpu_infos = {}
+        for p in self.pids:
+            cpu_infos[str(p)] = self.get_cpu_current_memory_mb(p)
+        
+        gpu_infos = {}
+        for g in self.gpu_id:
+            gpu_infos[str(g)] = self.gpuinfo.get_gpu_info(g)
+        
+        if return_str is False:
+            return cpu_infos, gpu_infos
+        else:
+            return json.dumps(cpu_infos) + "\n" + json.dumps(gpu_infos)
+    
+    def get_avg_mem_mb(self):
+        cpu_infos, gpu_infos = self.summary_mem(return_str=False)
+        if len(self.cpu_infos.keys()) < 1:
+            self.cpu_infos = cpu_infos
+        else:
+            for p in self.pids:
+                for k in cpu_infos[str(p)].keys():
+                    v = cpu_infos[str(p)][k]
+                    self.cpu_infos[str(p)][k] = np.mean([v, self.cpu_infos[str(p)][k]])
+        if len(self.gpu_infos.keys()) < 1:
+            self.gpu_infos = gpu_infos
+        else:
+            for g in self.gpu_id:
+                for k in gpu_infos[str(g)].keys():
+                    self.gpu_infos[str(g)][k] = np.mean([v, self.gpu_infos[str(g)][k]])
+
+        return self.cpu_infos, self.gpu_infos
+
+    def get_avg_mem_subprocess(self, q, interval=1.0):
+        while True:
+            res = self.get_avg_mem_mb()
+            q.put(res)
+            time.sleep(interval)
+        return 
+
+    def _start_subprocess(self):
+        multiprocessing.set_start_method('spawn')
+        self._quene = multiprocessing.Queue()
+        self.p = multiprocessing.Process(target=self.get_avg_mem_subprocess, args=(self._quene, 1.0))
+        self.p.start()
+    
+    def _join_subprocess(self):
+        self.p.join()
+    
+    def _terminate_subprocess(self):
+        # res = self._quene.get()
+        self.p.terminate()
+        return res
+
+
+if __name__ == "__main__":
+    # print("----------------------------")
+    mem_info = MemInfo(11227, [0])
+    res = mem_info.summary_mem()
+    print(res)
