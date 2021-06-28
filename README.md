@@ -34,7 +34,7 @@ pip3.7 install AutoLog-1.0.0-py3-none-any.whl
 
 使用方式可以参考[PR](https://github.com/PaddlePaddle/PaddleOCR/pull/3182/files)：
 
-AutoLogger 参数说明：
+AutoLogger类参数说明：
 ```
 model_name="det",       #  string 模型名字，可自定义
 model_precision=args.precision,  # string 精度，'fp32', 'fp16', 'int8'
