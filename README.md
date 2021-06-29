@@ -22,14 +22,14 @@ pynvml
 autolog编译安装：
 ```
 git clone https://github.com/LDOUBLEV/AutoLog
-pip3.7 install -r requirements.txt
-python3.7 setup.py bdist_wheel
-pip3.7 install ./dist/AutoLog-1.0.0-py3-none-any.whl
+pip3 install -r requirements.txt
+python3 setup.py bdist_wheel
+pip3 install ./dist/AutoLog-1.0.0-py3-none-any.whl
 ```
 autolog 1.0版本下载安装：
 ```
 wget https://paddleocr.bj.bcebos.com/whl/AutoLog-1.0.0-py3-none-any.whl
-pip3.7 install AutoLog-1.0.0-py3-none-any.whl
+pip3 install AutoLog-1.0.0-py3-none-any.whl
 ```
 
 使用方式可以参考[PR](https://github.com/PaddlePaddle/PaddleOCR/pull/3182/files)：

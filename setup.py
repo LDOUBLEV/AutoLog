@@ -3,14 +3,16 @@ from setuptools import setup
 
 with open('requirements.txt', encoding="utf-8-sig") as f:
     requirements = f.readlines()
-    requirements.append('tqdm')
 
       
-setup(name='AutoLog',
+setup(name='auto_log',
       version='1.0.0',
       install_requires=requirements,
-      description='Auto logger',
-      author='Liuweiwei',
+      license='Apache License 2.0',
+      keywords='auto log',
+      description="The AutoLog Contains automatic timing, statistics on CPU memory, GPU memory and other information, since generating logs and other functions.",
+      url='https://github.com/LDOUBLEV/AutoLog',
+      author='DoubleV',
       author_email='liuvv0203@gmail.com',
       packages=['auto_log'],
       )
