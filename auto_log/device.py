@@ -47,7 +47,7 @@ class GpuInfo(object):
     def init(self):
         # init
         pynvml.nvmlInit()
-        self.GPUs = GPUtil.getGPUs()
+        #self.GPUs = GPUtil.getGPUs()
     
     def get_gpu_name(self):
         name = pynvml.nvmlDeviceGetName(handle)
@@ -74,7 +74,8 @@ class GpuInfo(object):
         return used_rate
     
     def get_gpu_util(self, gpu_id):
-        gpu_util = self.GPUs[gpu_id].load
+        GPUs = GPUtil.getGPUs()
+        gpu_util = GPUs[gpu_id].load
         return gpu_util
 
     def get_gpu_info(self, gpu_id):

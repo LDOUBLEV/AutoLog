@@ -56,6 +56,7 @@ class AutoLogger(RunConfig):
                  gpu_ids=None, 
                  time_keys=['preprocess_time', 'inference_time', 'postprocess_time'],
                  warmup=0,
+                 logger=None,
                  **kwargs):
         super(AutoLogger, self).__init__()
         self.autolog_version = 1.0
@@ -72,7 +73,8 @@ class AutoLogger(RunConfig):
         self.times = Times(keys=time_keys,warmup=warmup)
 
         self.get_paddle_info()
-        self.init_logger()
+        
+        self.logger = self.init_logger() if logger is None else logger
 
         self.get_mem = SubprocessGetMem(pid=pids, gpu_id=gpu_ids)
         self.start_subprocess_get_mem()
@@ -99,8 +101,10 @@ class AutoLogger(RunConfig):
         """
         # Init logger
         FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        log_output = f"{self.save_path}/{self.model_name}.log"
-        Path(f"{self.save_path}").mkdir(parents=True, exist_ok=True)
+        log_output = f"{self.save_path}"
+        if not os.path.exists(os.path.dirname(log_output)):
+            os.mkdirs(os.path.dirname(log_output))
+
         logging.basicConfig(
             level=logging.INFO,
             format=FORMAT,
@@ -109,9 +113,10 @@ class AutoLogger(RunConfig):
                     filename=log_output, mode='w'),
                 logging.StreamHandler(),
             ])
-        self.logger = logging.getLogger(__name__)
-        self.logger.info(
+        logger = logging.getLogger(__name__)
+        logger.info(
             f"Paddle Inference benchmark log will be saved to {log_output}")
+        return logger
 
     def parse_config(self, config) -> dict:
         """
