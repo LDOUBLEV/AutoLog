@@ -97,17 +97,18 @@ class GpuInfo(object):
 class MemInfo(CpuInfo):
     def __init__(self, pids=None, gpu_id=None):
 
-        pynvml.nvmlInit()
+        if gpu_id is not None:
+            pynvml.nvmlInit()
 
         self.pids = self.check_pid(pids)
         if gpu_id is not None:
             self.gpuinfo = GpuInfo()
             self.gpu_id = self.check_gpu_id(gpu_id)
+            self.gpuinfo.init()
         else:
             self.gpuinfo = None
             self.gpu_id = self.check_gpu_id(gpu_id)
-        
-        self.gpuinfo.init()
+
         self.cpu_infos = {}
         self.gpu_infos = {}
     
@@ -215,3 +216,4 @@ class SubprocessGetMem(object):
 #     mem_info = MemInfo(11227, [0])
 #     res = mem_info.summary_mem()
 #     print(res)
+
