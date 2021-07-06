@@ -103,7 +103,7 @@ class AutoLogger(RunConfig):
         FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         log_output = f"{self.save_path}"
         if not os.path.exists(os.path.dirname(log_output)):
-            os.mkdirs(os.path.dirname(log_output))
+            os.makedirs(os.path.dirname(log_output))
 
         logging.basicConfig(
             level=logging.INFO,
