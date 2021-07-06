@@ -17,6 +17,7 @@ python3
 GPUtil
 psutil
 pynvml
+distro
 ```
 
 autolog编译安装：
