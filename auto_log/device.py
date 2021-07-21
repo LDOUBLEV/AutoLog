@@ -177,8 +177,8 @@ class MemInfo(CpuInfo):
         else:
             for g in self.gpu_id:
                 for k in gpu_infos[str(g)].keys():
-                    self.gpu_infos[str(g)][k] = np.mean([v, self.gpu_infos[str(g)][k]])
-
+                    #self.gpu_infos[str(g)][k] = np.mean([v, self.gpu_infos[str(g)][k]])
+                    self.gpu_infos[str(g)][k] = np.max([v, self.gpu_infos[str(g)][k]])
         return self.cpu_infos, self.gpu_infos
 
 
@@ -186,14 +186,14 @@ class SubprocessGetMem(object):
     def __init__(self, pid, gpu_id):
         self.mem_info = MemInfo(pid, gpu_id)
 
-    def get_mem_subprocess_start(self, q, interval=1.0):
+    def get_mem_subprocess_start(self, q, interval=0.0):
         while True:
             cpu_infos, gpu_infos = self.mem_info.get_avg_mem_mb()
             q.put([cpu_infos, gpu_infos])
             time.sleep(interval)
         return
     
-    def get_mem_subprocess_init(self, interval=1.0):
+    def get_mem_subprocess_init(self, interval=0.0):
         multiprocessing.set_start_method('fork')
         self.mem_q = multiprocessing.Queue()
 
@@ -201,7 +201,7 @@ class SubprocessGetMem(object):
         self.mem_p = multiprocessing.Process(target=self.get_mem_subprocess_start, args=(self.mem_q, interval))
         self.mem_p.start()
     
-    def get_mem_subprocess_run(self, interval=1.0):
+    def get_mem_subprocess_run(self, interval=0.0):
         self.get_mem_subprocess_init(interval=interval)
     
     def get_mem_subprocess_end(self):

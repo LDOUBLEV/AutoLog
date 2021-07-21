@@ -166,7 +166,7 @@ class AutoLogger(RunConfig):
         
         cpu_rss_mb = self.cpu_infos['cpu_rss']
         gpu_rss_mb = self.gpu_infos['used'] if self.gpu_ids is not None else None      
-        gpu_util = self.gpu_infos['util'] if self.gpu_ids is not None else None 
+        gpu_util = self.gpu_infos['util']*100 if self.gpu_ids is not None else None 
 
         # report env
         envs = get_env_info()
