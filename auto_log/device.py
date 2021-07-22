@@ -189,7 +189,8 @@ class SubprocessGetMem(object):
     def get_mem_subprocess_start(self, q, interval=0.0):
         while True:
             cpu_infos, gpu_infos = self.mem_info.get_avg_mem_mb()
-            q.put([cpu_infos, gpu_infos])
+            pid = os.getpid()
+            q.put([cpu_infos, gpu_infos, pid])
             time.sleep(interval)
         return
     
@@ -205,9 +206,20 @@ class SubprocessGetMem(object):
         self.get_mem_subprocess_init(interval=interval)
     
     def get_mem_subprocess_end(self):
-        self.cpu_infos, self.gpu_infos = self.mem_q.get()
-        # self.mem_p.terminate()
-        self.mem_p.kill()
+        self.cpu_infos, self.gpu_infos, subpid = self.mem_q.get()
+        #self.mem_p.terminate()
+        try: 
+            self.mem_p.kill()
+        except:
+            import os, signal
+            #os.kill(subpid, signal.SIGSTOP)
+            import subprocess  
+            try:
+                subprocess.Popen("kill -s 9  %i"%subpid , shell=True) 
+            except: 
+                subprocess.Popen("cmd.exe /k taskkill /F /T /PID %i"%subpid , shell=True)
+            #os.kill(self.mem_p.pid, signal.SIGSTOP)
+#            self.mem_p.close()
 
 
 
