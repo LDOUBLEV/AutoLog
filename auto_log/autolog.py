@@ -104,18 +104,23 @@ class AutoLogger(RunConfig):
         log_output = f"{self.save_path}"
         if not os.path.exists(os.path.dirname(log_output)):
             os.makedirs(os.path.dirname(log_output))
-
-        logging.basicConfig(
-            level=logging.INFO,
-            format=FORMAT,
-            handlers=[
-                logging.FileHandler(
-                    filename=log_output, mode='w'),
-                logging.StreamHandler(),
-            ])
+        if self.save_path is None:
+            logging.basicConfig(
+                level=logging.INFO,
+                format=FORMAT)
+        else:
+            logging.basicConfig(
+                level=logging.INFO,
+                format=FORMAT,
+                handlers=[
+                    logging.FileHandler(
+                        filename=log_output, mode='w'),
+                    logging.StreamHandler(),
+                ])
         logger = logging.getLogger(__name__)
-        logger.info(
-            f"Paddle Inference benchmark log will be saved to {log_output}")
+        logger.info("Init logger done!")
+        # logger.info(
+        #     f"Paddle Inference benchmark log will be saved to {log_output}")
         return logger
 
     def parse_config(self, config) -> dict:
@@ -165,8 +170,8 @@ class AutoLogger(RunConfig):
         cpu_infos, gpu_infos = self.end_subprocess_get_mem()
         
         cpu_rss_mb = self.cpu_infos['cpu_rss']
-        gpu_rss_mb = self.gpu_infos['used'] if self.gpu_ids is not None else None      
-        gpu_util = self.gpu_infos['util']*100 if self.gpu_ids is not None else None 
+        gpu_rss_mb = self.gpu_infos['memory.used'] if self.gpu_ids is not None else None      
+        gpu_util = self.gpu_infos['utilization.gpu'] if self.gpu_ids is not None else None 
 
         # report env
         envs = get_env_info()
