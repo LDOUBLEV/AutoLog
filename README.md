@@ -46,3 +46,6 @@ time_keys=None,         # list,  统计时间的键值，默认为['preprocess_t
 warmup=10               # int, warmup times,默认为0，warmup次数内，不会统计时间
 ```
 
+# Updates
+- 2021.8.5: 增加获取GPU信息的类GpuInfoV2，从nvidia-smi中获取GPU显存占用，可以不需要引入pynuml和GPUtil 这两个依赖
+
