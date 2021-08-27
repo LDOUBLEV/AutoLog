@@ -223,11 +223,11 @@ class SubprocessGetMem(object):
         return
     
     def get_mem_subprocess_init(self, interval=0.0):
-        multiprocessing.set_start_method('fork')
-        self.mem_q = multiprocessing.Queue()
+        ctx = multiprocessing.get_context('spawn')
+        self.mem_q = ctx.Queue()
 
         results = []
-        self.mem_p = multiprocessing.Process(target=self.get_mem_subprocess_start, args=(self.mem_q, interval))
+        self.mem_p = ctx.Process(target=self.get_mem_subprocess_start, args=(self.mem_q, interval))
         self.mem_p.start()
     
     def get_mem_subprocess_run(self, interval=0.0):
