@@ -1,7 +1,7 @@
 
 # AutoLog
 
-包含自动计时，统计CPU内存、GPU显存等信息，自从生成日志等功能。
+包含自动计时，统计CPU内存、GPU显存等信息，自动生成日志等功能。
 ```
 ├── auto_log
 │   ├── autolog.py  # 包含AutoLogger类，规范日志
