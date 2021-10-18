@@ -132,14 +132,22 @@ class AutoLogger(RunConfig):
             config_status(dict): dict style config info
         """
         config_status = {}
-        config_status['runtime_device'] = "gpu" if config.use_gpu() else "cpu"
-        config_status['ir_optim'] = config.ir_optim()
-        config_status['enable_tensorrt'] = config.tensorrt_engine_enabled()
-        config_status['precision'] = self.precision
-        config_status['enable_mkldnn'] = config.mkldnn_enabled()
-        config_status[
-            'cpu_math_library_num_threads'] = config.cpu_math_library_num_threads(
-            )
+        if config is not None:
+            config_status['runtime_device'] = "gpu" if config.use_gpu() else "cpu"
+            config_status['ir_optim'] = config.ir_optim()
+            config_status['enable_tensorrt'] = config.tensorrt_engine_enabled()
+            config_status['precision'] = self.precision
+            config_status['enable_mkldnn'] = config.mkldnn_enabled()
+            config_status[
+                'cpu_math_library_num_threads'] = config.cpu_math_library_num_threads(
+                )
+        else:
+            config_status['runtime_device'] = "None"
+            config_status['ir_optim'] = "None"
+            config_status['enable_tensorrt'] = "None"
+            config_status['precision'] = self.precision
+            config_status['enable_mkldnn'] = "None"
+            config_status['cpu_math_library_num_threads'] = "None"
         return config_status
 
     def get_paddle_info(self):
