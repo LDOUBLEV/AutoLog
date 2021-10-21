@@ -132,7 +132,7 @@ class AutoLogger(RunConfig):
             config_status(dict): dict style config info
         """
         config_status = {}
-        if config is not None:
+        if config is not None and type(config) is not dict:
             config_status['runtime_device'] = "gpu" if config.use_gpu() else "cpu"
             config_status['ir_optim'] = config.ir_optim()
             config_status['enable_tensorrt'] = config.tensorrt_engine_enabled()
@@ -141,6 +141,13 @@ class AutoLogger(RunConfig):
             config_status[
                 'cpu_math_library_num_threads'] = config.cpu_math_library_num_threads(
                 )
+        elif type(config) is dict:
+            config_status['runtime_device'] = config['runtime_device'] if 'runtime_device' in config else None
+            config_status['ir_optim'] = config['ir_optim'] if 'ir_optim' in config else None 
+            config_status['enable_tensorrt'] = config['enable_tensorrt'] if 'enable_tensorrt' in config else None
+            config_status['precision'] = config['precision'] if 'precision' in config else None
+            config_status['enable_mkldnn'] = config['enable_mkldnn'] if 'enable_mkldnn'  in config else None
+            config_status['cpu_math_library_num_threads'] = config['cpu_math_library_num_threads'] if 'cpu_math_library_num_threads' in config else None
         else:
             config_status['runtime_device'] = "None"
             config_status['ir_optim'] = "None"
