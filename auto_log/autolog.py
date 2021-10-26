@@ -21,6 +21,7 @@ import os
 import paddle
 from pathlib import Path
 import logging
+import sys
 from .env import get_env_info
 from .utils import Times
 from .device import MemInfo, SubprocessGetMem
