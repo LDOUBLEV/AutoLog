@@ -95,7 +95,7 @@ class AutoLogger(RunConfig):
             self.gpu_infos = gpu_infos[str(self.gpu_ids)]
         return self.cpu_infos, self.gpu_infos
     
-    def init_logger(self，name='root', log_level=logging.DEBUG):
+    def init_logger(self, name='root', log_level=logging.DEBUG):
         log_file = self.save_path
         
         logger = logging.getLogger(name)
