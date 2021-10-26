@@ -94,33 +94,27 @@ class AutoLogger(RunConfig):
         else:
             self.gpu_infos = gpu_infos[str(self.gpu_ids)]
         return self.cpu_infos, self.gpu_infos
+    
+    def init_logger(self，name='root', log_level=logging.DEBUG):
+        log_file = self.save_path
+        
+        logger = logging.getLogger(name)
 
-    def init_logger(self):
-        """
-        benchmark logger
-        """
-        # Init logger
-        FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        log_output = f"{self.save_path}"
-        if not os.path.exists(os.path.dirname(log_output)):
-            os.makedirs(os.path.dirname(log_output))
-        if self.save_path is None:
-            logging.basicConfig(
-                level=logging.INFO,
-                format=FORMAT)
-        else:
-            logging.basicConfig(
-                level=logging.INFO,
-                format=FORMAT,
-                handlers=[
-                    logging.FileHandler(
-                        filename=log_output, mode='w'),
-                    logging.StreamHandler(),
-                ])
-        logger = logging.getLogger(__name__)
-        logger.info("Init logger done!")
-        # logger.info(
-        #     f"Paddle Inference benchmark log will be saved to {log_output}")
+        formatter = logging.Formatter(
+            '[%(asctime)s] %(name)s %(levelname)s: %(message)s',
+            datefmt="%Y/%m/%d %H:%M:%S")
+
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
+        if log_file is not None:
+            dir_name = os.path.dirname(log_file)
+            if len(dir_name) > 0 and not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+            file_handler = logging.FileHandler(log_file, 'w')
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+        logger.setLevel(log_level)
         return logger
 
     def parse_config(self, config) -> dict:
