@@ -58,7 +58,7 @@ class AutoLogger(RunConfig):
                  warmup=0,
                  logger=None,
                  **kwargs):
-        super(AutoLogger, self).__init__()
+        super(AutoLogger, self).__init__(**kwargs)
         self.autolog_version = 1.0
         self.save_path = save_path
         self.model_name = model_name
