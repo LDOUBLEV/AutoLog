@@ -27,8 +27,6 @@ class AutoLogger {
 public:
     AutoLogger(std::string model_name, 
                std::string runtime_device,
-               bool enable_tensorrt,
-               bool enable_mkldnn,
                int cpu_threads,
                int batch_size,
                std::string input_shape,
@@ -37,8 +35,6 @@ public:
                int img_num) {
         this->model_name_ = model_name;
         this->runtime_device_ = runtime_device;
-        this->enable_tensorrt_ = enable_tensorrt;
-        this->enable_mkldnn_ = enable_mkldnn;
         this->cpu_threads_ = cpu_threads;
         this->batch_size_ = batch_size;
         this->input_shape_ = input_shape;
@@ -51,9 +47,7 @@ public:
         std::cout << "runtime_device: " << (this->runtime_device_) << std::endl;
         std::cout << "ir_optim: " << "True" << std::endl;
         std::cout << "enable_memory_optim: " << "True" << std::endl;
-        std::cout << "enable_tensorrt: " << this->enable_tensorrt_ << std::endl;
-        std::cout << "enable_mkldnn: " << (this->enable_mkldnn_ ? "True" : "False") << std::endl;
-        std::cout << "cpu_math_library_num_threads: " << this->cpu_threads_ << std::endl;
+        std::cout << "cpu_num_threads: " << this->cpu_threads_ << std::endl;
         std::cout << "----------------------- Data info -----------------------" << std::endl;
         std::cout << "batch_size: " << this->batch_size_ << std::endl;
         std::cout << "input_shape: " << this->input_shape_ << std::endl;
@@ -70,9 +64,7 @@ public:
         
 private:
     std::string model_name_;
-    std::runtime_device_
-    bool enable_tensorrt_ = false;
-    bool enable_mkldnn_ = true;
+    std::string runtime_device_;
     int cpu_threads_ = 1;
     int batch_size_ = 1;
     std::string input_shape_ = "dynamic";
