@@ -45,8 +45,6 @@ public:
     void report() {
         std::cout << "----------------------- Config info -----------------------" << std::endl;
         std::cout << "runtime_device: " << (this->runtime_device_) << std::endl;
-        std::cout << "ir_optim: " << "True" << std::endl;
-        std::cout << "enable_memory_optim: " << "True" << std::endl;
         std::cout << "cpu_num_threads: " << this->cpu_threads_ << std::endl;
         std::cout << "----------------------- Data info -----------------------" << std::endl;
         std::cout << "batch_size: " << this->batch_size_ << std::endl;
