@@ -26,7 +26,7 @@
 class AutoLogger {
 public:
     AutoLogger(std::string model_name, 
-               std::string runtime_device,,
+               std::string runtime_device,
                bool enable_tensorrt,
                bool enable_mkldnn,
                int cpu_threads,
