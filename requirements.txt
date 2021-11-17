@@ -2,3 +2,4 @@ GPUtil
 psutil
 pynvml
 distro
+wheel
