@@ -310,7 +310,7 @@ class TrainerLogger(object):
     def get_ips_info(self, scope="local"):
         if self.smoothed_infos["avg_samples"].get_sum(scope=scope) == 0:
             return ""
-        ips_info = "avg_ips: {:.7f}".format(
+        ips_info = "avg_ips: {:.7f} images/sec".format(
             self.smoothed_infos["avg_samples"].get_sum(scope=scope) /
             self.smoothed_infos["avg_batch_cost"].get_sum(scope=scope))
         return ips_info
@@ -324,9 +324,6 @@ class TrainerLogger(object):
             epoch_info = "[epoch {}, batch_idx {}]".format(epoch, epoch)
 
         mode_info = "[{}]".format(self.mode)
-        # for key in self.smoothed_infos:
-        #     print(key, self.smoothed_infos[key].log(scope=scope))
-        # exit()
         smooth_val_info = ", ".join([
             self.smoothed_infos[key].log(scope=scope)
             for key in self.smoothed_infos
