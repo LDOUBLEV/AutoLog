@@ -27,20 +27,20 @@ from .utils import Times
 from .device import MemInfo, SubprocessGetMem
 
 
-class RunConfig:
-    def __init(self, 
+class RunConfig(object):
+    def __init__(self,
                run_devices="cpu",
                ir_optim=False,
                enable_tensorrt=False,
                enable_mkldnn=False,
                cpu_threads=0,
                enable_mem_optim=True):
-        
+
         self.run_devices = run_devices
         self.ir_optim = ir_optim
         self.enable_mkldnn = enable_mkldnn
         self.enable_tensorrt = enable_tensorrt
-        self.cpu_math_library_num_threads = self.cpu_threads
+        self.cpu_math_library_num_threads = cpu_threads
         self.enable_mem_optim = enable_mem_optim
 
 
@@ -52,14 +52,14 @@ class AutoLogger(RunConfig):
                  data_shape,
                  save_path,
                  inference_config=None,
-                 pids=None, 
-                 process_name=None, 
-                 gpu_ids=None, 
+                 pids=None,
+                 process_name=None,
+                 gpu_ids=None,
                  time_keys=['preprocess_time', 'inference_time', 'postprocess_time'],
                  warmup=0,
                  logger=None,
                  **kwargs):
-        super(AutoLogger, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.autolog_version = 1.0
         self.save_path = save_path
         self.model_name = model_name
@@ -74,14 +74,14 @@ class AutoLogger(RunConfig):
         self.times = Times(keys=time_keys,warmup=warmup)
 
         self.get_paddle_info()
-        
+
         self.logger = self.init_logger() if logger is None else logger
 
         self.get_mem = SubprocessGetMem(pid=pids, gpu_id=gpu_ids)
         self.start_subprocess_get_mem()
         self.pids = pids
         self.gpu_ids = gpu_ids
-    
+
     def start_subprocess_get_mem(self):
         self.get_mem.get_mem_subprocess_run(0.2)
 
@@ -95,10 +95,10 @@ class AutoLogger(RunConfig):
         else:
             self.gpu_infos = gpu_infos[str(self.gpu_ids)]
         return self.cpu_infos, self.gpu_infos
-    
+
     def init_logger(self, name='root', log_level=logging.DEBUG):
         log_file = self.save_path
-        
+
         logger = logging.getLogger(name)
 
         formatter = logging.Formatter(
@@ -138,7 +138,7 @@ class AutoLogger(RunConfig):
                 )
         elif type(config) is dict:
             config_status['runtime_device'] = config['runtime_device'] if 'runtime_device' in config else None
-            config_status['ir_optim'] = config['ir_optim'] if 'ir_optim' in config else None 
+            config_status['ir_optim'] = config['ir_optim'] if 'ir_optim' in config else None
             config_status['enable_tensorrt'] = config['enable_tensorrt'] if 'enable_tensorrt' in config else None
             config_status['precision'] = config['precision'] if 'precision' in config else None
             config_status['enable_mkldnn'] = config['enable_mkldnn'] if 'enable_mkldnn'  in config else None
@@ -178,10 +178,10 @@ class AutoLogger(RunConfig):
 
         # report memory
         cpu_infos, gpu_infos = self.end_subprocess_get_mem()
-        
+
         cpu_rss_mb = self.cpu_infos['cpu_rss']
-        gpu_rss_mb = self.gpu_infos['memory.used'] if self.gpu_ids is not None else None      
-        gpu_util = self.gpu_infos['utilization.gpu'] if self.gpu_ids is not None else None 
+        gpu_rss_mb = self.gpu_infos['memory.used'] if self.gpu_ids is not None else None
+        gpu_util = self.gpu_infos['utilization.gpu'] if self.gpu_ids is not None else None
 
         # report env
         envs = get_env_info()
@@ -239,7 +239,7 @@ class AutoLogger(RunConfig):
         """
         print function help
         """
-        print("""Usage: 
+        print("""Usage:
             ==== Print inference benchmark logs. ====
             config = paddle.inference.Config()
             model_info = {'model_name': 'resnet50'
@@ -264,4 +264,4 @@ class AutoLogger(RunConfig):
 #     print(envs['os_info'])
 #     get_cudnn_info()
 #     print(envs['cudnn_version'])
-    
+
