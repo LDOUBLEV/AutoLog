@@ -27,35 +27,47 @@ from .utils import Times
 from .device import MemInfo, SubprocessGetMem
 
 
+def get_infer_gpuid():
+    cmd = "env | grep CUDA_VISIBLE_DEVICES"
+    env_cuda = os.popen(cmd).readlines()
+    if len(env_cuda) == 0:
+        return 0
+    else:
+        gpu_id = env_cuda[0].strip().split("=")[1]
+        return int(gpu_id[0])
+
+
 class RunConfig:
-    def __init(self, 
+    def __init(self,
                run_devices="cpu",
                ir_optim=False,
                enable_tensorrt=False,
                enable_mkldnn=False,
                cpu_threads=0,
                enable_mem_optim=True):
-        
+
         self.run_devices = run_devices
         self.ir_optim = ir_optim
         self.enable_mkldnn = enable_mkldnn
         self.enable_tensorrt = enable_tensorrt
-        self.cpu_math_library_num_threads = self.cpu_threads
+        self.cpu_math_library_num_threads = cpu_threads
         self.enable_mem_optim = enable_mem_optim
 
 
 class AutoLogger(RunConfig):
     def __init__(self,
                  model_name,
-                 model_precision,
-                 batch_size,
-                 data_shape,
-                 save_path,
+                 model_precision="fp32",
+                 batch_size=1,
+                 data_shape="dynamic",
+                 save_path=None,
                  inference_config=None,
-                 pids=None, 
-                 process_name=None, 
-                 gpu_ids=None, 
-                 time_keys=['preprocess_time', 'inference_time', 'postprocess_time'],
+                 pids=None,
+                 process_name=None,
+                 gpu_ids=None,
+                 time_keys=[
+                     'preprocess_time', 'inference_time', 'postprocess_time'
+                 ],
                  warmup=0,
                  logger=None,
                  **kwargs):
@@ -71,17 +83,22 @@ class AutoLogger(RunConfig):
         self.config_status = self.parse_config(self.paddle_infer_config)
 
         self.time_keys = time_keys
-        self.times = Times(keys=time_keys,warmup=warmup)
+        self.times = Times(keys=time_keys, warmup=warmup)
 
         self.get_paddle_info()
-        
+
         self.logger = self.init_logger() if logger is None else logger
+
+        if pids is None:
+            pids = os.getpid()
+        self.pids = pids
+        if gpu_ids == "auto":
+            gpu_ids = get_infer_gpuid()
+        self.gpu_ids = gpu_ids
 
         self.get_mem = SubprocessGetMem(pid=pids, gpu_id=gpu_ids)
         self.start_subprocess_get_mem()
-        self.pids = pids
-        self.gpu_ids = gpu_ids
-    
+
     def start_subprocess_get_mem(self):
         self.get_mem.get_mem_subprocess_run(0.2)
 
@@ -95,10 +112,10 @@ class AutoLogger(RunConfig):
         else:
             self.gpu_infos = gpu_infos[str(self.gpu_ids)]
         return self.cpu_infos, self.gpu_infos
-    
+
     def init_logger(self, name='root', log_level=logging.DEBUG):
         log_file = self.save_path
-        
+
         logger = logging.getLogger(name)
 
         formatter = logging.Formatter(
@@ -128,7 +145,8 @@ class AutoLogger(RunConfig):
         """
         config_status = {}
         if config is not None and type(config) is not dict:
-            config_status['runtime_device'] = "gpu" if config.use_gpu() else "cpu"
+            config_status['runtime_device'] = "gpu" if config.use_gpu(
+            ) else "cpu"
             config_status['ir_optim'] = config.ir_optim()
             config_status['enable_tensorrt'] = config.tensorrt_engine_enabled()
             config_status['precision'] = self.precision
@@ -137,12 +155,18 @@ class AutoLogger(RunConfig):
                 'cpu_math_library_num_threads'] = config.cpu_math_library_num_threads(
                 )
         elif type(config) is dict:
-            config_status['runtime_device'] = config['runtime_device'] if 'runtime_device' in config else None
-            config_status['ir_optim'] = config['ir_optim'] if 'ir_optim' in config else None 
-            config_status['enable_tensorrt'] = config['enable_tensorrt'] if 'enable_tensorrt' in config else None
-            config_status['precision'] = config['precision'] if 'precision' in config else None
-            config_status['enable_mkldnn'] = config['enable_mkldnn'] if 'enable_mkldnn'  in config else None
-            config_status['cpu_math_library_num_threads'] = config['cpu_math_library_num_threads'] if 'cpu_math_library_num_threads' in config else None
+            config_status['runtime_device'] = config[
+                'runtime_device'] if 'runtime_device' in config else None
+            config_status['ir_optim'] = config[
+                'ir_optim'] if 'ir_optim' in config else None
+            config_status['enable_tensorrt'] = config[
+                'enable_tensorrt'] if 'enable_tensorrt' in config else None
+            config_status['precision'] = config[
+                'precision'] if 'precision' in config else None
+            config_status['enable_mkldnn'] = config[
+                'enable_mkldnn'] if 'enable_mkldnn' in config else None
+            config_status['cpu_math_library_num_threads'] = config[
+                'cpu_math_library_num_threads'] if 'cpu_math_library_num_threads' in config else None
         else:
             config_status['runtime_device'] = "None"
             config_status['ir_optim'] = "None"
@@ -178,10 +202,12 @@ class AutoLogger(RunConfig):
 
         # report memory
         cpu_infos, gpu_infos = self.end_subprocess_get_mem()
-        
+
         cpu_rss_mb = self.cpu_infos['cpu_rss']
-        gpu_rss_mb = self.gpu_infos['memory.used'] if self.gpu_ids is not None else None      
-        gpu_util = self.gpu_infos['utilization.gpu'] if self.gpu_ids is not None else None 
+        gpu_rss_mb = self.gpu_infos[
+            'memory.used'] if self.gpu_ids is not None else None
+        gpu_util = self.gpu_infos[
+            'utilization.gpu'] if self.gpu_ids is not None else None
 
         # report env
         envs = get_env_info()
@@ -189,16 +215,19 @@ class AutoLogger(RunConfig):
         self.logger.info("\n")
         self.logger.info(
             "---------------------- Env info ----------------------")
-            # envs['nvidia_driver_version'] envs['cudnn_version']envs['cuda_version'] envs['os_info']
+        # envs['nvidia_driver_version'] envs['cudnn_version']envs['cuda_version'] envs['os_info']
         self.logger.info(f"{identifier} OS_version: {envs['os_info']}")
         self.logger.info(f"{identifier} CUDA_version: {envs['cuda_version']}")
-        self.logger.info(f"{identifier} CUDNN_version: {envs['cudnn_version']}")
-        self.logger.info(f"{identifier} drivier_version: {envs['nvidia_driver_version']}")
+        self.logger.info(
+            f"{identifier} CUDNN_version: {envs['cudnn_version']}")
+        self.logger.info(
+            f"{identifier} drivier_version: {envs['nvidia_driver_version']}")
         self.logger.info(
             "---------------------- Paddle info ----------------------")
         self.logger.info(f"{identifier} paddle_version: {self.paddle_version}")
         self.logger.info(f"{identifier} paddle_commit: {self.paddle_commit}")
-        self.logger.info(f"{identifier} log_api_version: {self.autolog_version}")
+        self.logger.info(
+            f"{identifier} log_api_version: {self.autolog_version}")
         self.logger.info(
             "----------------------- Conf info -----------------------")
         self.logger.info(
@@ -211,7 +240,8 @@ class AutoLogger(RunConfig):
             f"{identifier} enable_tensorrt: {self.config_status['enable_tensorrt']}"
         )
         self.logger.info(
-            f"{identifier} enable_mkldnn: {self.config_status['enable_mkldnn']}")
+            f"{identifier} enable_mkldnn: {self.config_status['enable_mkldnn']}"
+        )
         self.logger.info(
             f"{identifier} cpu_math_library_num_threads: {self.config_status['cpu_math_library_num_threads']}"
         )
@@ -229,8 +259,7 @@ class AutoLogger(RunConfig):
         self.logger.info(
             f"{identifier} cpu_rss(MB): {cpu_rss_mb}, gpu_rss(MB): {gpu_rss_mb}, gpu_util: {gpu_util}%"
         )
-        self.logger.info(
-            f"{identifier} total time spent(s): {total_time_s}")
+        self.logger.info(f"{identifier} total time spent(s): {total_time_s}")
         self.logger.info(
             f"{identifier} preprocess_time(ms): {preprocess_time_ms}, inference_time(ms): {inference_time_ms}, postprocess_time(ms): {postprocess_time_ms}"
         )
@@ -264,4 +293,3 @@ class AutoLogger(RunConfig):
 #     print(envs['os_info'])
 #     get_cudnn_info()
 #     print(envs['cudnn_version'])
-    
