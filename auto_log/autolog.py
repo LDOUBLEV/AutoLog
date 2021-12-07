@@ -89,12 +89,15 @@ class AutoLogger(RunConfig):
 
         self.logger = self.init_logger() if logger is None else logger
 
-        self.get_mem = SubprocessGetMem(pid=pids, gpu_id=gpu_ids)
-        self.start_subprocess_get_mem()
+        if pids is None:
+            pids = os.getpid()
         self.pids = pids
         if gpu_ids == "auto":
             gpu_ids = get_infer_gpuid()
         self.gpu_ids = gpu_ids
+
+        self.get_mem = SubprocessGetMem(pid=pids, gpu_id=gpu_ids)
+        self.start_subprocess_get_mem()
 
     def start_subprocess_get_mem(self):
         self.get_mem.get_mem_subprocess_run(0.2)
