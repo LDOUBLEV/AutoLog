@@ -263,6 +263,7 @@ class AutoLogger(RunConfig):
         self.logger.info(
             f"{identifier} preprocess_time(ms): {preprocess_time_ms}, inference_time(ms): {inference_time_ms}, postprocess_time(ms): {postprocess_time_ms}"
         )
+        sys.exit(0)
 
     def print_help(self):
         """
