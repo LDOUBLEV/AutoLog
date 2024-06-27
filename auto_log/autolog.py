@@ -221,7 +221,7 @@ class AutoLogger(RunConfig):
         self.logger.info(
             f"{identifier} CUDNN_version: {envs['cudnn_version']}")
         self.logger.info(
-            f"{identifier} drivier_version: {envs['nvidia_driver_version']}")
+            f"{identifier} driver_version: {envs['nvidia_driver_version']}")
         self.logger.info(
             "---------------------- Paddle info ----------------------")
         self.logger.info(f"{identifier} paddle_version: {self.paddle_version}")
