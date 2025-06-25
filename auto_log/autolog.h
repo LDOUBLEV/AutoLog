@@ -20,6 +20,7 @@
 #include <ostream>
 #include <stdlib.h>
 #include <vector>
+#include <numeric>
 #include <glog/logging.h>
 
 
